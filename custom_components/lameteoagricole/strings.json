@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "La Meteo Agricole",
+        "description": "Indique l'URL de la page La Meteo Agricole de ta commune.",
+        "data": {
+          "url": "URL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossible de recuperer ou parser la page La Meteo Agricole."
+    },
+    "abort": {
+      "already_configured": "Cette commune est deja configuree."
+    }
+  }
+}
