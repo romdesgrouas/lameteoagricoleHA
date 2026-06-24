@@ -126,6 +126,30 @@ class LaMeteoAgricoleWeather(CoordinatorEntity, WeatherEntity):
         current = self.coordinator.data.current
         return current.wind_bearing if current else None
 
+    @property
+    def extra_state_attributes(self) -> dict[str, str] | None:
+        """Return additional ephemeris attributes."""
+        sun = self.coordinator.data.sun
+        if sun is None:
+            return None
+
+        attributes = {
+            "sunrise": sun.sunrise,
+            "sunset": sun.sunset,
+            "saint_of_day": sun.saint_of_day,
+            "civil_twilight": _format_range(
+                sun.civil_twilight_begin, sun.civil_twilight_end
+            ),
+            "civil_twilight_begin": sun.civil_twilight_begin,
+            "civil_twilight_end": sun.civil_twilight_end,
+            "nautical_twilight": _format_range(
+                sun.nautical_twilight_begin, sun.nautical_twilight_end
+            ),
+            "nautical_twilight_begin": sun.nautical_twilight_begin,
+            "nautical_twilight_end": sun.nautical_twilight_end,
+        }
+        return {key: value for key, value in attributes.items() if value is not None}
+
     async def async_forecast_daily(self) -> list[Forecast] | None:
         """Return the daily forecast."""
         forecasts: list[Forecast] = []
@@ -181,3 +205,10 @@ def _map_condition(label: str | None) -> str | None:
         if needle in normalized:
             return condition
     return "partlycloudy"
+
+
+def _format_range(begin: str | None, end: str | None) -> str | None:
+    """Format a begin/end time range."""
+    if begin and end:
+        return f"{begin} - {end}"
+    return None

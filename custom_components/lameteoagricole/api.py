@@ -54,12 +54,26 @@ class ForecastHour:
 
 
 @dataclass(slots=True)
+class SunData:
+    """Daily ephemeris data."""
+
+    sunrise: str | None = None
+    sunset: str | None = None
+    saint_of_day: str | None = None
+    civil_twilight_begin: str | None = None
+    civil_twilight_end: str | None = None
+    nautical_twilight_begin: str | None = None
+    nautical_twilight_end: str | None = None
+
+
+@dataclass(slots=True)
 class WeatherData:
     """Weather data returned by the site."""
 
     location_name: str | None
     forecast: list[ForecastDay]
     hourly_forecast: list[ForecastHour]
+    sun: SunData | None = None
 
     @property
     def current(self) -> ForecastHour | ForecastDay | None:
@@ -128,6 +142,7 @@ def normalize_url(value: str) -> str:
 def parse_weather_page(markup: str) -> WeatherData:
     """Parse a La Meteo Agricole public forecast page."""
     location_name = _parse_location_name(markup)
+    sun = _parse_sun_data(markup)
     base_year = _parse_valid_from(markup).year
 
     table = _extract_table(markup)
@@ -143,7 +158,12 @@ def parse_weather_page(markup: str) -> WeatherData:
     if not forecasts:
         raise ValueError("No forecast values found")
 
-    return WeatherData(location_name=location_name, forecast=forecasts, hourly_forecast=[])
+    return WeatherData(
+        location_name=location_name,
+        forecast=forecasts,
+        hourly_forecast=[],
+        sun=sun,
+    )
 
 
 def parse_hourly_page(markup: str) -> list[ForecastHour]:
@@ -185,6 +205,53 @@ def _parse_location_name(markup: str) -> str | None:
         if name:
             return str(name)
     return None
+
+
+def _parse_sun_data(markup: str) -> SunData | None:
+    """Extract sun and twilight data from the side card."""
+    match = re.search(
+        r'Weather/Sun/sun-clear\.svg.*?Cr\S*puscule nautique\s*:</span>\s*([^<]+)',
+        markup,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if not match:
+        return None
+
+    block = match.group(0)
+    sunrise = _first_match(
+        block,
+        r'Weather/Sun/sunrise\.svg.*?<span class="small">(\d{2}h\d{2})</span>',
+    )
+    sunset = _first_match(
+        block,
+        r'Weather/Sun/sunset\.svg.*?<span class="small">(\d{2}h\d{2})</span>',
+    )
+    saint_of_day = _first_match(
+        block,
+        r'<span class="fw-bold d-block mt-2">([^<]+)</span>',
+    )
+    text = _clean_text(block) or ""
+
+    civil = re.search(
+        r"Cr\S*puscule civil\s*:\s*(\d{2}h\d{2})\s*-\s*(\d{2}h\d{2})",
+        text,
+        flags=re.IGNORECASE,
+    )
+    nautical = re.search(
+        r"Cr\S*puscule nautique\s*:\s*(\d{2}h\d{2})\s*-\s*(\d{2}h\d{2})",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    return SunData(
+        sunrise=_format_site_time(sunrise),
+        sunset=_format_site_time(sunset),
+        saint_of_day=_clean_text(saint_of_day),
+        civil_twilight_begin=_format_site_time(civil.group(1)) if civil else None,
+        civil_twilight_end=_format_site_time(civil.group(2)) if civil else None,
+        nautical_twilight_begin=_format_site_time(nautical.group(1)) if nautical else None,
+        nautical_twilight_end=_format_site_time(nautical.group(2)) if nautical else None,
+    )
 
 
 def _parse_valid_from(markup: str) -> date:
@@ -432,6 +499,13 @@ def _clean_text(value: str | None) -> str | None:
     text = re.sub(r"<[^>]+>", " ", value)
     text = html.unescape(text).replace("\xa0", " ")
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _format_site_time(value: str | None) -> str | None:
+    """Format site times like 05h53 as 05:53."""
+    if value is None:
+        return None
+    return value.replace("h", ":")
 
 
 def _normalize(value: str) -> str:
