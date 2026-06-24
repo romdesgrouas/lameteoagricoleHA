@@ -67,6 +67,22 @@ class SunData:
 
 
 @dataclass(slots=True)
+class MoonData:
+    """Daily moon data."""
+
+    moonrise: str | None = None
+    moonset: str | None = None
+    phase: str | None = None
+    trend: str | None = None
+    age: str | None = None
+    illumination: float | None = None
+    next_new_moon: str | None = None
+    next_first_quarter: str | None = None
+    next_full_moon: str | None = None
+    next_last_quarter: str | None = None
+
+
+@dataclass(slots=True)
 class WeatherData:
     """Weather data returned by the site."""
 
@@ -74,6 +90,7 @@ class WeatherData:
     forecast: list[ForecastDay]
     hourly_forecast: list[ForecastHour]
     sun: SunData | None = None
+    moon: MoonData | None = None
 
     @property
     def current(self) -> ForecastHour | ForecastDay | None:
@@ -143,6 +160,7 @@ def parse_weather_page(markup: str) -> WeatherData:
     """Parse a La Meteo Agricole public forecast page."""
     location_name = _parse_location_name(markup)
     sun = _parse_sun_data(markup)
+    moon = _parse_moon_data(markup)
     base_year = _parse_valid_from(markup).year
 
     table = _extract_table(markup)
@@ -163,6 +181,7 @@ def parse_weather_page(markup: str) -> WeatherData:
         forecast=forecasts,
         hourly_forecast=[],
         sun=sun,
+        moon=moon,
     )
 
 
@@ -252,6 +271,71 @@ def _parse_sun_data(markup: str) -> SunData | None:
         nautical_twilight_begin=_format_site_time(nautical.group(1)) if nautical else None,
         nautical_twilight_end=_format_site_time(nautical.group(2)) if nautical else None,
     )
+
+
+def _parse_moon_data(markup: str) -> MoonData | None:
+    """Extract moon data from the moon side card."""
+    match = re.search(
+        r'<div class="card border-light border lune">(.*?)</div>\s*<!-- \.card -->',
+        markup,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if not match:
+        return None
+
+    block = match.group(1)
+    moonrise = _first_match(
+        block,
+        r'Weather/Moon/rise\.svg.*?<span class="small">(\d{1,2}h\d{2})</span>',
+    )
+    moonset = _first_match(
+        block,
+        r'Weather/Moon/set\.svg.*?<span class="small">(\d{1,2}h\d{2})</span>',
+    )
+    phase = _first_match(block, r'<span class="fw-bold d-block">([^<]+)</span>')
+    trend = _first_match(block, r'<span class="small d-block">([^<]+)</span>')
+    age = _first_match(
+        block,
+        r'<span class="d-block">[^<]*ge</span>\s*<span class="fw-bold d-block">([^<]+)</span>',
+    )
+    illumination = _number(
+        _first_match(
+            block,
+            r'<span class="d-block">Illumination</span>\s*<span class="fw-bold d-block">(\d+(?:[,.]\d+)?)%',
+        )
+    )
+
+    phases = _parse_moon_phase_events(block)
+
+    return MoonData(
+        moonrise=_format_site_time(moonrise),
+        moonset=_format_site_time(moonset),
+        phase=_clean_text(phase),
+        trend=_clean_text(trend),
+        age=_clean_text(age),
+        illumination=illumination,
+        next_new_moon=phases.get("nouvelle lune"),
+        next_first_quarter=phases.get("premier quartier"),
+        next_full_moon=phases.get("pleine lune"),
+        next_last_quarter=phases.get("dernier quartier"),
+    )
+
+
+def _parse_moon_phase_events(block: str) -> dict[str, str]:
+    """Extract next moon phase event labels and dates."""
+    events: dict[str, str] = {}
+    for match in re.finditer(
+        r'<span class="fw-bold d-block">([^<]+)</span>\s*'
+        r'<span class="small d-block text-shade-4">([^<]+)<br\s*/>\s*([^<]+)</span>',
+        block,
+        flags=re.IGNORECASE | re.DOTALL,
+    ):
+        label = _normalize(_clean_text(match.group(1)) or "")
+        day = _clean_text(match.group(2))
+        hour = _clean_text(match.group(3))
+        if label and day and hour:
+            events[label] = f"{day} {hour}"
+    return events
 
 
 def _parse_valid_from(markup: str) -> date:

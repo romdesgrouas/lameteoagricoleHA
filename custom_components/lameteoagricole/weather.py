@@ -130,24 +130,44 @@ class LaMeteoAgricoleWeather(CoordinatorEntity, WeatherEntity):
     def extra_state_attributes(self) -> dict[str, str] | None:
         """Return additional ephemeris attributes."""
         sun = self.coordinator.data.sun
-        if sun is None:
+        moon = self.coordinator.data.moon
+        if sun is None and moon is None:
             return None
 
-        attributes = {
-            "sunrise": sun.sunrise,
-            "sunset": sun.sunset,
-            "saint_of_day": sun.saint_of_day,
-            "civil_twilight": _format_range(
-                sun.civil_twilight_begin, sun.civil_twilight_end
-            ),
-            "civil_twilight_begin": sun.civil_twilight_begin,
-            "civil_twilight_end": sun.civil_twilight_end,
-            "nautical_twilight": _format_range(
-                sun.nautical_twilight_begin, sun.nautical_twilight_end
-            ),
-            "nautical_twilight_begin": sun.nautical_twilight_begin,
-            "nautical_twilight_end": sun.nautical_twilight_end,
-        }
+        attributes = {}
+        if sun is not None:
+            attributes.update(
+                {
+                    "sunrise": sun.sunrise,
+                    "sunset": sun.sunset,
+                    "saint_of_day": sun.saint_of_day,
+                    "civil_twilight": _format_range(
+                        sun.civil_twilight_begin, sun.civil_twilight_end
+                    ),
+                    "civil_twilight_begin": sun.civil_twilight_begin,
+                    "civil_twilight_end": sun.civil_twilight_end,
+                    "nautical_twilight": _format_range(
+                        sun.nautical_twilight_begin, sun.nautical_twilight_end
+                    ),
+                    "nautical_twilight_begin": sun.nautical_twilight_begin,
+                    "nautical_twilight_end": sun.nautical_twilight_end,
+                }
+            )
+        if moon is not None:
+            attributes.update(
+                {
+                    "moonrise": moon.moonrise,
+                    "moonset": moon.moonset,
+                    "moon_phase": moon.phase,
+                    "moon_trend": moon.trend,
+                    "moon_age": moon.age,
+                    "moon_illumination": moon.illumination,
+                    "next_new_moon": moon.next_new_moon,
+                    "next_first_quarter": moon.next_first_quarter,
+                    "next_full_moon": moon.next_full_moon,
+                    "next_last_quarter": moon.next_last_quarter,
+                }
+            )
         return {key: value for key, value in attributes.items() if value is not None}
 
     async def async_forecast_daily(self) -> list[Forecast] | None:

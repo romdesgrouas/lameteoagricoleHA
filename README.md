@@ -87,7 +87,9 @@ Les previsions heure par heure contiennent :
 
 ### Ephemeride
 
-Ces donnees sont exposees comme attributs de l'entite `weather` :
+Ces donnees sont exposees comme attributs de l'entite `weather`.
+
+Soleil :
 
 | Attribut | Description |
 | --- | --- |
@@ -100,6 +102,21 @@ Ces donnees sont exposees comme attributs de l'entite `weather` :
 | `nautical_twilight_begin` | Debut du crepuscule nautique |
 | `nautical_twilight_end` | Fin du crepuscule nautique |
 | `saint_of_day` | Saint du jour affiche dans l'ephemeride |
+
+Lune :
+
+| Attribut | Description |
+| --- | --- |
+| `moonrise` | Heure de lever de la lune |
+| `moonset` | Heure de coucher de la lune |
+| `moon_phase` | Phase lunaire actuelle |
+| `moon_trend` | Tendance de la phase, par exemple croissante |
+| `moon_age` | Age de la lune |
+| `moon_illumination` | Illumination en pourcentage |
+| `next_new_moon` | Prochaine nouvelle lune |
+| `next_first_quarter` | Prochain premier quartier |
+| `next_full_moon` | Prochaine pleine lune |
+| `next_last_quarter` | Prochain dernier quartier |
 
 ## Exemples de cartes Home Assistant
 
@@ -141,6 +158,18 @@ content: |
   **Crepuscule nautique :** {{ state_attr('weather.la_meteo_agricole', 'nautical_twilight') }}
 
   **Saint du jour :** {{ state_attr('weather.la_meteo_agricole', 'saint_of_day') }}
+
+  ## Lune
+
+  **Lever de la lune :** {{ state_attr('weather.la_meteo_agricole', 'moonrise') }}
+
+  **Coucher de la lune :** {{ state_attr('weather.la_meteo_agricole', 'moonset') }}
+
+  **Phase :** {{ state_attr('weather.la_meteo_agricole', 'moon_phase') }}
+
+  **Age :** {{ state_attr('weather.la_meteo_agricole', 'moon_age') }}
+
+  **Illumination :** {{ state_attr('weather.la_meteo_agricole', 'moon_illumination') }} %
 ```
 
 ### Carte Markdown avec valeurs separees
@@ -156,6 +185,22 @@ content: |
   Civil : {{ state_attr('weather.la_meteo_agricole', 'civil_twilight_begin') }} - {{ state_attr('weather.la_meteo_agricole', 'civil_twilight_end') }}
 
   Nautique : {{ state_attr('weather.la_meteo_agricole', 'nautical_twilight_begin') }} - {{ state_attr('weather.la_meteo_agricole', 'nautical_twilight_end') }}
+```
+
+### Carte Markdown pour les prochaines phases lunaires
+
+```yaml
+type: markdown
+content: |
+  ## Prochaines phases lunaires
+
+  Nouvelle lune : {{ state_attr('weather.la_meteo_agricole', 'next_new_moon') }}
+
+  Premier quartier : {{ state_attr('weather.la_meteo_agricole', 'next_first_quarter') }}
+
+  Pleine lune : {{ state_attr('weather.la_meteo_agricole', 'next_full_moon') }}
+
+  Dernier quartier : {{ state_attr('weather.la_meteo_agricole', 'next_last_quarter') }}
 ```
 
 ### Carte Entities pour l'entite meteo
@@ -177,6 +222,8 @@ Dans **Outils de developpement > Modeles**, tu peux tester :
 {{ state_attr('weather.la_meteo_agricole', 'sunrise') }}
 {{ state_attr('weather.la_meteo_agricole', 'civil_twilight') }}
 {{ state_attr('weather.la_meteo_agricole', 'saint_of_day') }}
+{{ state_attr('weather.la_meteo_agricole', 'moon_phase') }}
+{{ state_attr('weather.la_meteo_agricole', 'moon_illumination') }}
 ```
 
 Pour voir tous les attributs exposes :
@@ -193,10 +240,10 @@ La version de l'integration est definie dans :
 custom_components/lameteoagricole/manifest.json
 ```
 
-Exemple :
+Exemple pour la version actuelle :
 
 ```json
-"version": "0.1.0"
+"version": "0.3.0"
 ```
 
 Pour generer les ZIP de distribution :
@@ -205,10 +252,10 @@ Pour generer les ZIP de distribution :
 python scripts\package.py
 ```
 
-La commande cree :
+La commande cree les fichiers ZIP a partir de la version indiquee dans le manifest :
 
 ```text
-dist/lameteoagricoleHA-v0.1.0.zip
+dist/lameteoagricoleHA-v0.3.0.zip
 dist/lameteoagricoleHA-latest.zip
 ```
 
