@@ -185,6 +185,56 @@ Pour voir tous les attributs exposes :
 {{ states.weather.la_meteo_agricole.attributes }}
 ```
 
+## Versionner et creer une archive
+
+La version de l'integration est definie dans :
+
+```text
+custom_components/lameteoagricole/manifest.json
+```
+
+Exemple :
+
+```json
+"version": "0.1.0"
+```
+
+Pour generer les ZIP de distribution :
+
+```powershell
+python scripts\package.py
+```
+
+La commande cree :
+
+```text
+dist/lameteoagricoleHA-v0.1.0.zip
+dist/lameteoagricoleHA-latest.zip
+```
+
+Le dossier `dist/` est ignore par Git. L'idee est de versionner le code source dans GitHub, puis d'ajouter le ZIP versionne comme asset dans une release GitHub si tu veux distribuer une version precise.
+
+## Workflow Git simple
+
+Pour voir ce qui a change :
+
+```powershell
+git status
+```
+
+Pour enregistrer une modification localement :
+
+```powershell
+git add .
+git commit -m "Description courte de la modification"
+```
+
+Pour envoyer les commits vers GitHub :
+
+```powershell
+git push
+```
+
 ## Limites connues
 
 Le site n'offre pas d'API publique documentee. Le parseur depend donc du HTML public et peut necessiter un ajustement si le site change sa structure.
